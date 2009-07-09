@@ -1,0 +1,106 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+	"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<title>JS ISO</title>
+		<script type="text/javascript" src="lib/jquery-1.3.2.js"></script>
+		<script type="text/javascript">
+			var perspective = {top:0, left:0};
+			var context;
+			jQuery(document).ready(function(){
+				perspective.top = jQuery("#world_canvas").attr("height") / 2;
+				perspective.left = jQuery("#world_canvas").attr("width") / 2;
+				var world_canvas = document.getElementById("world_canvas");
+				if(world_canvas && world_canvas.getContext){
+					context = world_canvas.getContext('2d');
+					if(context){
+						init_canvas();
+						draw_tiles();
+					};
+				};
+			}).keydown(function(e){
+				switch(e.keyCode){
+					case 40:
+						// up
+						perspective.top -= 3;
+						break;
+					case 38:
+						// down
+						perspective.top += 3;
+						break;
+					case 37:
+						// left
+						perspective.left += 3;
+						break;
+					case 39:
+						// right
+						perspective.left -= 3;
+						break;
+				};
+				clear_canvas();
+				draw_tiles();
+			});
+			function init_canvas(){
+				context.fillStyle = "#77AA00";
+				context.fillRect(0, 0, 930, 445);
+			};
+			function clear_canvas(){
+				init_canvas();
+			};
+			function draw_tiles(){
+				var tile;
+				var tile_width = 40;
+				var tile_height = 40;
+				var map_width = 20;
+				var map_height = 30;
+				var tile_x;
+				var tile_y;
+				for(var y = 0; y < map_height; y++){
+					for(var x = 0; x < map_width; x++){
+						if(x & 1){
+							tile_x = (x * (tile_width / 2));
+							tile_y = (y * (tile_height / 2)) + (tile_height / 4);
+						}else{
+							tile_x = x * (tile_width / 2);
+							tile_y = y * (tile_height / 2);
+						};	
+						tile = new Tile(context, tile_width, tile_height, "#CCFF99", tile_x + perspective.left, tile_y + perspective.top);
+						tile.render();
+					};
+				};
+			};
+			function Tile(context, width, height, color, x, y){
+				this.context = context;
+				this.width = width;
+				this.height = height;
+				this.color = color;
+				this.x = x;
+				this.y = y;
+				this.render = function(){
+					with(this){
+						context.beginPath();
+						context.fillStyle = color;
+						context.strokeStyle = '#99AA00';
+						context.lineWidth = 1;
+						context.moveTo(x, y + (height / 4));
+						context.lineTo(x + (width / 2), y);
+						context.lineTo(x + width, y + (height / 4));
+						context.lineTo(x + (width / 2), y + (height / 2));
+						context.lineTo(x, y + (height / 4));
+						context.fill();
+						context.stroke();
+						context.closePath();
+					};
+				};
+			};
+		</script>
+		<style type="text/css">
+		</style>
+	</head>
+	<body>
+		<canvas id="world_canvas" width="930" height="445">
+			Fallback, No Canvas Support
+		</canvas>
+	</body>
+</html>
