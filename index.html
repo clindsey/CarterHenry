@@ -6,8 +6,92 @@
 		<title>JS ISO</title>
 		<script type="text/javascript" src="lib/jquery-1.3.2.js"></script>
 		<script type="text/javascript">
+			var RenderQueue = function(){
+				var _heap = [];
+				var _count = 0;
+				var _lookup = [];
+				this.enqueue = function(obj){
+					_count++;
+					_heap[_count] = obj;
+					_lookup[obj] = _count;
+					walk_up(_count);
+				};
+				this.swap_depth = function(obj, depth){
+					if(!_lookup[obj]) return;
+					var old_depth = obj.depth;
+					obj.depth = depth;
+					var pos = _lookup[obj];
+					old_depth > depth ? walk_up(pos) : walk_down(pos);
+				};
+				var walk_up = function(index){
+					if(_heap.length < 2) return;
+					while(true){
+						if(index - 1 >= 1 && _heap[index].depth < _heap[index - 1].depth){
+							var tmp = _heap[index - 1];
+							_lookup[_heap[index - 1]] = index;
+							_lookup[_heap[index]] = index - 1;
+							_heap[index - 1] = _heap[index]
+							_heap[index] = tmp;
+						}else{
+							break;
+						};
+						index--;
+					};
+				};
+				var walk_down = function(index){
+					if(_heap.length < 2) return;
+					while(true){
+						if(index + 1 <= _count && _heap[index].depth > _heap[index + 1].depth){
+							var tmp = _heap[index + 1];
+							_lookup[_heap[index + 1]] = index;
+							_lookup[_heap[index]] = index + 1;
+							_heap[index + 1] = _heap[index];
+							_heap[index] = tmp;
+						}else{
+							break;
+						};
+						index++;
+					};
+				};
+				this.toArray = function(){
+					return _heap.slice(1, _count + 1);
+				};
+			};
+			var RenderQueueIterator = function(render_queue){
+				var _values = render_queue.toArray();
+				var _length = _values.length;
+				var _cursor = 0;
+				this.data = function(obj){
+					if(obj != undefined){
+						_values[_cursor] = obj;
+					}else{
+						return _values[_cursor];
+					};
+				};
+				this.start = function(){
+					_cursor = 0;
+				};
+				this.has_next = function(){
+					return _cursor < _length;
+				};
+				this.next = function(){
+					return _values[_cursor++];
+				};
+			};
+		</script>
+		<script type="text/javascript">
+			var map = {tile_size:80, data:[
+									[1, 1, 1, 1, 1, 1, 1, 1],
+									[1, 0, 0, 0, 0, 0, 0, 1],
+									[1, 0, 1, 0, 0, 0, 0, 1],
+									[1, 0, 0, 0, 0, 1, 0, 1],
+									[1, 0, 0, 0, 0, 0, 0, 1],
+									[1, 1, 1, 1, 1, 1, 1, 1]]};
 			var perspective = {top:0, left:0};
 			var context;
+			var log = {last_x_y:{x:-1,y:-1}};
+			var render_queue = new RenderQueue();
+			var cursor;
 			jQuery(document).ready(function(){
 				perspective.top = jQuery("#world_canvas").attr("height") / 2;
 				perspective.left = jQuery("#world_canvas").attr("width") / 2;
@@ -15,31 +99,37 @@
 				if(world_canvas && world_canvas.getContext){
 					context = world_canvas.getContext('2d');
 					if(context){
+						init_tiles();
 						init_canvas();
 						draw_tiles();
 					};
 				};
-			}).keydown(function(e){
-				switch(e.keyCode){
-					case 40:
-						// up
-						perspective.top -= 3;
-						break;
-					case 38:
-						// down
-						perspective.top += 3;
-						break;
-					case 37:
-						// left
-						perspective.left += 3;
-						break;
-					case 39:
-						// right
-						perspective.left -= 3;
-						break;
-				};
-				clear_canvas();
-				draw_tiles();
+				jQuery("#world_canvas").mousemove(function(e){
+					var mouse_x = e.clientX - jQuery("#world_canvas").offset().left - perspective.left;
+					var mouse_y = e.clientY - jQuery("#world_canvas").offset().top - perspective.top;
+					var y_mouse = ((2 * mouse_y - mouse_x) / 2);
+					var x_mouse = (mouse_x + y_mouse);
+					var tile_y = Math.round(y_mouse / (map.tile_size / 2));
+					var tile_x = Math.round(x_mouse / (map.tile_size / 2)) - 1;
+					var tile_width = map.tile_size;
+					var tile_height = map.tile_size;
+					if((log.last_x_y.x != tile_x || log.last_x_y.y != tile_y) && map.data[tile_y] && map.data[tile_y][tile_x] != undefined && map.data[tile_y][tile_x] == 0){
+						var x = (tile_x - tile_y) * (map.tile_size / 2) + perspective.left;
+						var y = (tile_x + tile_y) * (map.tile_size / 4) + perspective.top;
+						depth = y * 300 + x + 2;
+						if(cursor == undefined){
+							cursor = new CursorTile(context, tile_width, tile_height, depth, "#880000", x, y, true);
+							render_queue.enqueue(cursor);
+						}else{
+							render_queue.swap_depth(cursor, depth);
+							cursor.x = x;
+							cursor.y = y;
+						};
+						clear_canvas();
+						draw_tiles();
+					};
+					log.last_x_y = {x:x, y:y};
+				});
 			});
 			function init_canvas(){
 				context.fillStyle = "#77AA00";
@@ -48,35 +138,121 @@
 			function clear_canvas(){
 				init_canvas();
 			};
-			function draw_tiles(){
-				var tile;
-				var tile_width = 40;
-				var tile_height = 40;
-				var map_width = 20;
-				var map_height = 30;
-				var tile_x;
-				var tile_y;
-				for(var y = 0; y < map_height; y++){
-					for(var x = 0; x < map_width; x++){
-						if(x & 1){
-							tile_x = (x * (tile_width / 2));
-							tile_y = (y * (tile_height / 2)) + (tile_height / 4);
+			function init_tiles(){
+				var tile_x, tile_y;
+				var tile_width = map.tile_size;
+				var tile_height = map.tile_size;
+				var depth;
+				for(var y = 0; y < map.data.length; y++){
+					for(var x = 0; x < map.data[y].length; x++){
+						tile_x = (x - y) * (tile_width / 2);
+						tile_y = (x + y) * (tile_height / 4);
+						depth = (tile_y + perspective.top) * 300 + (tile_x + perspective.left) + 1;
+						if(map.data[y][x] == 0){
+							render_queue.enqueue(new WalkableTile(context, tile_width, tile_height, depth, "#CACF43", tile_x + perspective.left, tile_y + perspective.top, true));
 						}else{
-							tile_x = x * (tile_width / 2);
-							tile_y = y * (tile_height / 2);
-						};	
-						tile = new Tile(context, tile_width, tile_height, "#CCFF99", tile_x + perspective.left, tile_y + perspective.top);
-						tile.render();
+							render_queue.enqueue(new NonWalkableTile(context, tile_width, tile_height, depth, "#2B2825", tile_x + perspective.left, tile_y + perspective.top, false));
+						};
 					};
 				};
 			};
-			function Tile(context, width, height, color, x, y){
+			function draw_tiles(){
+				draw_queue();
+			};
+			function draw_queue(){
+				var itr = new RenderQueueIterator(render_queue);
+				while(itr.has_next()){
+					itr.next().render();
+				};
+			};
+			function NonWalkableTile(context, width, height, depth, color, x, y, walkable){
 				this.context = context;
 				this.width = width;
 				this.height = height;
+				this.depth = depth;
 				this.color = color;
 				this.x = x;
 				this.y = y;
+				this.walkable = walkable;
+				this.render = function(){
+					with(this){
+						context.beginPath();
+						context.fillStyle = color;
+						context.strokeStyle = '#99AA00';
+						context.lineWidth = 1;
+						context.moveTo(x, y + (height / 4));
+						context.lineTo(x, y - (height / 16));
+						context.lineTo(x + (width / 2), y - ((height / 16) + height / 4));
+						context.lineTo(x + width, y - (height / 16));
+						context.lineTo(x + width, y + (height / 4));
+						context.lineTo(x + (width / 2), y + (height / 2));
+						context.lineTo(x, y + (height / 4));
+						context.fill();
+						context.stroke();
+						context.closePath();
+						
+						context.beginPath();
+						context.fillStyle = "#333333";
+						context.strokeStyle = "#99AA00";
+						context.lineWidth = 1;
+						context.moveTo(x, y - (height / 16));
+						context.lineTo(x + (width / 2), y + ((height / 4) - (height / 16)));
+						context.lineTo(x + width, y - (height / 16));
+						context.lineTo(x + (width / 2), y - ((height / 16) + height / 4));
+						context.lineTo(x, y - (height / 16));
+						context.fill();
+						context.stroke();
+						context.closePath();
+						
+						context.beginPath();
+						context.fillStyle = "#000000";
+						context.strokeStyle = "#99AA00";
+						context.lineWidth = 1;
+						context.moveTo(x + (width / 2), y + ((height / 4) - (height / 16)));
+						context.lineTo(x + (width / 2), y + (height / 2));
+						context.lineTo(x + width, y + (height / 4));
+						context.lineTo(x + width, y - (height / 16));
+						context.fill();
+						context.stroke();
+						context.closePath();
+					};
+				};
+			};
+			function WalkableTile(context, width, height, depth, color, x, y, walkable){
+				this.context = context;
+				this.width = width;
+				this.height = height;
+				this.depth = depth;
+				this.color = color;
+				this.x = x;
+				this.y = y;
+				this.walkable = walkable;
+				this.render = function(){
+					with(this){
+						context.beginPath();
+						context.fillStyle = color;
+						context.strokeStyle = '#99AA00';
+						context.lineWidth = 1;
+						context.moveTo(x, y + (height / 4));
+						context.lineTo(x + (width / 2), y);
+						context.lineTo(x + width, y + (height / 4));
+						context.lineTo(x + (width / 2), y + (height / 2));
+						context.lineTo(x, y + (height / 4));
+						context.fill();
+						context.stroke();
+						context.closePath();
+					};
+				};
+			};
+			function CursorTile(context, width, height, depth, color, x, y, walkable){
+				this.context = context;
+				this.width = width;
+				this.height = height;
+				this.depth = depth;
+				this.color = color;
+				this.x = x;
+				this.y = y;
+				this.walkable = walkable;
 				this.render = function(){
 					with(this){
 						context.beginPath();
@@ -95,8 +271,6 @@
 				};
 			};
 		</script>
-		<style type="text/css">
-		</style>
 	</head>
 	<body>
 		<canvas id="world_canvas" width="930" height="445">
