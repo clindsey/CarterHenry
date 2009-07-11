@@ -1,7 +1,6 @@
 var tile_data = new TileData(40);
 
 tile_data.lookup[0] = function(context, depth, x, y){
-	this.walkable = true;
 	width = tile_data.size;
 	height = tile_data.size;
 	this.render = function(){
@@ -20,7 +19,6 @@ tile_data.lookup[0] = function(context, depth, x, y){
 	};
 };
 tile_data.lookup[1] = function(context, depth, x, y){
-	this.walkable = false;
 	width = tile_data.size;
 	height = tile_data.size;
 	this.render = function(){
