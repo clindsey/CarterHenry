@@ -8,6 +8,8 @@ tile_data.lookup['0'] = function(context, depth, x, y){
 	this.layer = 1;
 	this.x = x;
 	this.y = y;
+	var move_queue;
+	var move_timer;
 	this.mouse_over = function(map_x, map_y){
 		if(cursor == undefined) cursor = carter_henry.add_sprite("CursorSprite", map_x, map_y);
 		else carter_henry.move_sprite(cursor, map_x, map_y);
@@ -17,7 +19,11 @@ tile_data.lookup['0'] = function(context, depth, x, y){
 		jQuery("#world_canvas").css("cursor", "default");
 	};
 	this.mouse_down = function(map_x, map_y){
-		carter_henry.move_sprite(hero, map_x, map_y);
+		//carter_henry.move_sprite(hero, map_x, map_y);
+		var path_exists = nav.find(graph, graph.nodes[to_index(hero.map_x, hero.map_y)], graph.nodes[to_index(map_x, map_y)]);
+		if(!path_exists) return;
+		move_queue = nav.getPath(graph.nodes[to_index(hero.map_x, hero.map_y)], graph.nodes[to_index(map_x, map_y)]);
+		if(move_queue.length > 1) move_timer = setInterval(draw_path, 200);
 	};
 	this.render = function(){
 		context.beginPath();
@@ -29,6 +35,13 @@ tile_data.lookup['0'] = function(context, depth, x, y){
 		context.lineTo(this.x, this.y + (height >> 2))
 		context.fill();
 		context.closePath();
+	};
+	var draw_path = function(){
+		if(move_queue.length < 1) return clearInterval(move_timer);
+		var waypoint = move_queue[move_queue.length - 1];
+		var new_coords = {x:from_index(waypoint.graphNodeIndex).x, y:from_index(waypoint.graphNodeIndex).y};
+		carter_henry.move_sprite(hero, new_coords.x, new_coords.y);
+		move_queue.pop();
 	};
 };
 tile_data.lookup['1'] = function(context, depth, x, y){
