@@ -12,44 +12,19 @@
 		<script type="text/javascript">
 			var carter_henry;
 			var canvas = {background_color:"#77AA00", width:930, height:445};
+			var hero, cursor, villian;
 			jQuery(document).ready(function(){
 				var perspective = {top:jQuery("#world_canvas").attr("height") >> 2, left:jQuery("#world_canvas").attr("width") >> 1}
 				carter_henry = new CarterHenry("world_canvas", map, tile_data, perspective, canvas);
-				carter_henry.render();
+				hero = carter_henry.add_sprite("HeroSprite", 2, 2);
+				villian = carter_henry.add_sprite("VillianSprite", 12, 9);
 				
-				var log = {last_x_y:{x:-1,y:-1}};
-				var cursor;
-				/*jQuery("#world_canvas").mousemove(function(e){
-					var mouse_x = e.clientX - jQuery("#world_canvas").offset().left - perspective.left;
-					var mouse_y = e.clientY - jQuery("#world_canvas").offset().top - perspective.top;
-					var y_mouse = ((2 * mouse_y - mouse_x) / 2);
-					var x_mouse = (mouse_x + y_mouse);
-					var tile_y = Math.round(y_mouse / (map.tile_size / 2));
-					var tile_x = Math.round(x_mouse / (map.tile_size / 2)) - 1;
-					var tile_width = map.tile_size;
-					var tile_height = map.tile_size;
-					if((log.last_x_y.x != tile_x || log.last_x_y.y != tile_y) && map.data[tile_y] && map.data[tile_y][tile_x] != undefined && map.data[tile_y][tile_x] == 0){
-						var x = (tile_x - tile_y) * (map.tile_size / 2) + perspective.left;
-						var y = (tile_x + tile_y) * (map.tile_size / 4) + perspective.top;
-						depth = y * 300 + x + 2;
-						if(cursor == undefined){
-							cursor = new CursorTile(context, tile_width, tile_height, depth, "#880000", x, y, true);
-							render_queue.enqueue(cursor);
-						}else{
-							render_queue.swap_depth(cursor, depth);
-							cursor.x = x;
-							cursor.y = y;
-						};
-						clear_canvas();
-						draw_tiles();
-					};
-					log.last_x_y = {x:x, y:y};
-				});*/
+				carter_henry.timer = setInterval("carter_henry.render()", 70);
 			});
-			function clear_canvas(){
-				init_canvas();
-			};
 		</script>
+		<style type="text/css">
+			#world_canvas{cursor:default;}
+		</style>
 	</head>
 	<body>
 		<canvas id="world_canvas" width="930" height="445">
