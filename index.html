@@ -22,59 +22,57 @@
 		<script type="text/javascript" src="map.js"></script>
 		<script type="text/javascript">
 			var carter_henry;
-			var canvas = {background_color:"#77AA00", width:930, height:445};
-			var graph, nav;
-			var hero, cursor, villian;
+			var canvas, perspective;
+			var hero, cursor, scroll;
+			var scroll_found_counter = 0;
 			jQuery(document).ready(function(){
-				var perspective = {top:jQuery("#world_canvas").attr("height") >> 2, left:jQuery("#world_canvas").attr("width") >> 1}
-				carter_henry = new CarterHenry("world_canvas", map, tile_data, perspective, canvas);
+				canvas = {background_color:"#77AA00", width:jQuery("#world_canvas").width(), height:jQuery("#world_canvas").height()};
+				perspective = {top:10, left:250}
+				carter_henry = new CarterHenry("world_canvas", map, tile_data, perspective, canvas, true);
 				hero = carter_henry.add_sprite("HeroSprite", 2, 2);
-				villian = carter_henry.add_sprite("VillianSprite", 13, 9);
-				
-				init_graph();
-				
-				carter_henry.timer = setInterval("carter_henry.render()", 70);
+				scroll = carter_henry.add_sprite("ScrollSprite", 14, 10);
+				carter_henry.start(on_enter_frame);
 			});
-			function to_index(x, y){
-				return x + y * map.data[0].length;
+			function on_enter_frame(){
+				if(hero.map_x == scroll.map_x && hero.map_y == scroll.map_y){
+					jQuery("#scroll_found_count").html(++scroll_found_counter);
+					move_scroll_to_open_space();
+				};
 			};
-			function from_index(index){
-				var y = Math.floor(index / map.data[0].length);
-				return {y:y, x:index - y * map.data[0].length};
-			};
-			function init_graph(){
-				graph = new Graph(map.data.length * map.data[0].length);
-				nav = new AStarLine();
-				var waypoint;
-				for(var y = 0; y < map.data.length; y++){
-					for(var x = 0; x < map.data[y].length; x++){
-						waypoint = new Waypoint(to_index(x, y));
-						waypoint.setPos(x, y);
-						graph.addNode(waypoint, to_index(x, y))
+			function move_scroll_to_open_space(){
+				var found = false;
+				var index, y, x;
+				while(!found){
+					index = Math.round(Math.random() * (map.data.length * map.data[0].length));
+					y = Math.floor(index / map.data[0].length);
+					x = index - y * map.data[0].length;
+					if(map.data[y][x] == 0){
+						break;
 					};
 				};
-				network_graph();
-			};
-			function network_graph(){
-				var index;
-				for(var y = 0; y < map.data.length; y++){
-					for(var x = 0; x < map.data[y].length; x++){
-						index = to_index(x, y);
-						if(y - 1 > -1 && map.data[y - 1][x] == 0) graph.addArc(index, to_index(x, y - 1));
-						if(y + 1 < map.data.length && map.data[y + 1][x] == 0) graph.addArc(index, to_index(x, y + 1));
-						if(x - 1 > -1 && map.data[y][x - 1] == 0) graph.addArc(index, to_index(x - 1, y));
-						if(x + 1 < map.data[y].length && map.data[y][x + 1] == 0) graph.addArc(index, to_index(x + 1, y));
-					};
-				};
+				carter_henry.move_sprite(scroll, x, y);
 			};
 		</script>
 		<style type="text/css">
 			#world_canvas{cursor:default;}
+			#body{background-color:#DDDDDD;}
 		</style>
 	</head>
 	<body>
-		<canvas id="world_canvas" width="930" height="445">
+		<div id="score">
+			<h1>NINJA HAS FOUND <span id="scroll_found_count">0</span> SCROLLS</h1>
+		</div>
+		<canvas id="world_canvas" width="900" height="460">
 			Oops, No Canvas Support
 		</canvas>
+		<div id="instructions">
+			<p>
+				The Way:
+				<ol>
+					<li>Ninja clicks to move</li>
+					<li>Ninja finds the scrolls</li>
+				<ol>
+			</p>
+		</div>
 	</body>
 </html>
