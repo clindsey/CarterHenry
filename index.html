@@ -40,9 +40,8 @@
 				};
 			};
 			function move_scroll_to_open_space(){
-				var found = false;
 				var index, y, x;
-				while(!found){
+				while(true){
 					index = Math.round(Math.random() * (map.data.length * map.data[0].length));
 					y = Math.floor(index / map.data[0].length);
 					x = index - y * map.data[0].length;
@@ -72,6 +71,9 @@
 					<li>Ninja clicks to move</li>
 					<li>Ninja finds the scrolls</li>
 				<ol>
+			</p>
+			<p>
+				<a href="http://github.com/clindsey/CarterHenry">source</a>
 			</p>
 		</div>
 	</body>
