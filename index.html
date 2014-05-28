@@ -36,7 +36,7 @@
 			function on_enter_frame(){
 				if(hero.map_x == scroll.map_x && hero.map_y == scroll.map_y){
 					jQuery("#scroll_found_count").html(++scroll_found_counter);
-					if(scroll_fount_counter === 1){
+					if(scroll_found_counter === 1){
 						jQuery("#scroll_count_plural").hide();
 					} else {
 						jQuery("#scroll_count_plural").show();
